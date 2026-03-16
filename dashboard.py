@@ -2,12 +2,11 @@ import streamlit as st
 import pandas as pd
 import joblib
 from sklearn.preprocessing import LabelEncoder
+from sklearn.cluster import DBSCAN
 import folium
-from folium.plugins import HeatMap
 from streamlit_folium import folium_static
 import plotly.express as px
 import plotly.graph_objects as go
-import random
 
 st.set_page_config(layout="wide")
 
@@ -92,9 +91,7 @@ if st.button("Predict Risk"):
 
     st.write("Risk Score:", round(risk_score,2))
 
-    # ----------------------------
-    # Risk Gauge Meter
-    # ----------------------------
+    # Risk Gauge
     fig = go.Figure(go.Indicator(
         mode="gauge+number",
         value=risk_score,
@@ -112,21 +109,72 @@ if st.button("Predict Risk"):
     st.plotly_chart(fig)
 
 # ----------------------------
-# Risk Heatmap
+# Approximate State Coordinates
 # ----------------------------
-st.header("Accident Risk Heatmap")
+state_coords = {
+"Uttar Pradesh":[26.8467,80.9462],
+"Maharashtra":[19.7515,75.7139],
+"Rajasthan":[27.0238,74.2179],
+"Kerala":[10.8505,76.2711],
+"Karnataka":[15.3173,75.7139],
+"Tamil Nadu":[11.1271,78.6569],
+"Gujarat":[22.2587,71.1924],
+"Bihar":[25.0961,85.3131],
+"Madhya Pradesh":[22.9734,78.6569],
+"West Bengal":[22.9868,87.8550],
+"Punjab":[31.1471,75.3412],
+"Haryana":[29.0588,76.0856],
+"Jharkhand":[23.6102,85.2799],
+"Odisha":[20.9517,85.0985],
+"Chhattisgarh":[21.2787,81.8661],
+"Telangana":[18.1124,79.0193],
+"Andhra Pradesh":[15.9129,79.7400],
+"Himachal Pradesh":[31.1048,77.1734],
+"Jammu and Kashmir":[33.7782,76.5762],
+"Assam":[26.2006,92.9376],
+"Sikkim":[27.5330,88.5122],
+"Meghalaya":[25.4670,91.3662]
+}
+
+# Map states to coordinates
+coords = []
+
+for state in data["State Name"]:
+    if state in state_coords:
+        coords.append(state_coords[state])
+
+# ----------------------------
+# DBSCAN Clustering
+# ----------------------------
+if len(coords) > 10:
+
+    db = DBSCAN(eps=1.5, min_samples=5).fit(coords)
+    labels = db.labels_
+
+    cluster_df = pd.DataFrame(coords, columns=["lat","lon"])
+    cluster_df["cluster"] = labels
+
+# ----------------------------
+# Map
+# ----------------------------
+st.header("Accident Hotspot Detection")
 
 m = folium.Map(location=[20.59,78.96], zoom_start=5)
 
-# Generate simulated accident points across India
-heat_data = []
+for i,row in cluster_df.iterrows():
 
-for i in range(200):
-    lat = random.uniform(8,37)
-    lon = random.uniform(68,97)
-    heat_data.append([lat,lon])
+    if row["cluster"] == -1:
+        color = "gray"
+    else:
+        color = "red"
 
-HeatMap(heat_data).add_to(m)
+    folium.CircleMarker(
+        location=[row["lat"],row["lon"]],
+        radius=6,
+        color=color,
+        fill=True,
+        fill_color=color
+    ).add_to(m)
 
 folium_static(m)
 
@@ -143,31 +191,15 @@ st.dataframe(data.head(20))
 # ----------------------------
 st.header("Accident Statistics")
 
-col1, col2 = st.columns(2)
+col1,col2 = st.columns(2)
 
 with col1:
-    weather_chart = px.histogram(
-        data,
-        x="Weather Conditions",
-        title="Accidents by Weather",
-        color="Weather Conditions"
-    )
+    weather_chart = px.histogram(data,x="Weather Conditions",title="Accidents by Weather")
     st.plotly_chart(weather_chart)
 
 with col2:
-    road_chart = px.histogram(
-        data,
-        x="Road Type",
-        title="Accidents by Road Type",
-        color="Road Type"
-    )
+    road_chart = px.histogram(data,x="Road Type",title="Accidents by Road Type")
     st.plotly_chart(road_chart)
 
-state_chart = px.histogram(
-    data,
-    x="State Name",
-    title="Accidents by State",
-    color="State Name"
-)
-
+state_chart = px.histogram(data,x="State Name",title="Accidents by State")
 st.plotly_chart(state_chart)
