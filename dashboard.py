@@ -4,6 +4,7 @@ import joblib
 from sklearn.preprocessing import LabelEncoder
 import folium
 from streamlit_folium import folium_static
+import plotly.express as px
 
 st.set_page_config(layout="wide")
 
@@ -132,3 +133,37 @@ st.header("Dataset Preview")
 
 data.index = data.index + 1
 st.dataframe(data.head(20))
+
+# ----------------------------
+# Accident Statistics Charts
+# ----------------------------
+st.header("Accident Statistics")
+
+col1, col2 = st.columns(2)
+
+with col1:
+    weather_chart = px.histogram(
+        data,
+        x="Weather Conditions",
+        title="Accidents by Weather",
+        color="Weather Conditions"
+    )
+    st.plotly_chart(weather_chart)
+
+with col2:
+    road_chart = px.histogram(
+        data,
+        x="Road Type",
+        title="Accidents by Road Type",
+        color="Road Type"
+    )
+    st.plotly_chart(road_chart)
+
+state_chart = px.histogram(
+    data,
+    x="State Name",
+    title="Accidents by State",
+    color="State Name"
+)
+
+st.plotly_chart(state_chart)
