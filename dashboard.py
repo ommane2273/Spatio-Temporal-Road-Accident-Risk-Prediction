@@ -37,10 +37,12 @@ le_road = LabelEncoder()
 le_time = LabelEncoder()
 le_severity = LabelEncoder()
 
-data['Weather Conditions'] = le_weather.fit_transform(data['Weather Conditions'])
-data['Road Type'] = le_road.fit_transform(data['Road Type'])
-data['Time Period'] = le_time.fit_transform(data['Time Period'])
-data['Accident Severity'] = le_severity.fit_transform(data['Accident Severity'])
+encoded_data = data.copy()
+
+encoded_data['Weather Conditions'] = le_weather.fit_transform(encoded_data['Weather Conditions'])
+encoded_data['Road Type'] = le_road.fit_transform(encoded_data['Road Type'])
+encoded_data['Time Period'] = le_time.fit_transform(encoded_data['Time Period'])
+encoded_data['Accident Severity'] = le_severity.fit_transform(encoded_data['Accident Severity'])
 
 # ----------------------------
 # Load Model
@@ -57,9 +59,9 @@ st.title("Spatio-Temporal Road Accident Risk Prediction")
 # ----------------------------
 st.header("Accident Risk Prediction")
 
-weather = st.selectbox("Weather Condition", list(le_weather.classes_))
-road = st.selectbox("Road Type", list(le_road.classes_))
-time = st.selectbox("Time Period", ["Morning","Afternoon","Evening","Night"])
+weather_val = le_weather.transform([weather])[0]
+road_val = le_road.transform([road])[0]
+time_val = le_time.transform([time])[0]
 
 if st.button("Predict Risk"):
 
