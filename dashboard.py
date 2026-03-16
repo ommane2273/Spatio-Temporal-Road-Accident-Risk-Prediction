@@ -3,9 +3,11 @@ import pandas as pd
 import joblib
 from sklearn.preprocessing import LabelEncoder
 import folium
+from folium.plugins import HeatMap
 from streamlit_folium import folium_static
 import plotly.express as px
 import plotly.graph_objects as go
+import random
 
 st.set_page_config(layout="wide")
 
@@ -110,43 +112,21 @@ if st.button("Predict Risk"):
     st.plotly_chart(fig)
 
 # ----------------------------
-# Risk Map
+# Risk Heatmap
 # ----------------------------
-st.header("Accident Risk Map")
+st.header("Accident Risk Heatmap")
 
 m = folium.Map(location=[20.59,78.96], zoom_start=5)
 
-risk_points = [
-    {"city":"Mumbai","lat":19.0760,"lon":72.8777,"risk":0.82,"level":"High"},
-    {"city":"Delhi","lat":28.6139,"lon":77.2090,"risk":0.74,"level":"High"},
-    {"city":"Pune","lat":18.5204,"lon":73.8567,"risk":0.55,"level":"Medium"},
-    {"city":"Bangalore","lat":12.9716,"lon":77.5946,"risk":0.48,"level":"Medium"},
-    {"city":"Hyderabad","lat":17.3850,"lon":78.4867,"risk":0.32,"level":"Low"},
-]
+# Generate simulated accident points across India
+heat_data = []
 
-for point in risk_points:
+for i in range(200):
+    lat = random.uniform(8,37)
+    lon = random.uniform(68,97)
+    heat_data.append([lat,lon])
 
-    if point["level"] == "High":
-        color = "red"
-    elif point["level"] == "Medium":
-        color = "orange"
-    else:
-        color = "green"
-
-    popup = f"""
-    City: {point['city']} <br>
-    Risk Score: {point['risk']} <br>
-    Risk Level: {point['level']}
-    """
-
-    folium.CircleMarker(
-        location=[point["lat"], point["lon"]],
-        radius=10,
-        color=color,
-        fill=True,
-        fill_color=color,
-        popup=popup
-    ).add_to(m)
+HeatMap(heat_data).add_to(m)
 
 folium_static(m)
 
