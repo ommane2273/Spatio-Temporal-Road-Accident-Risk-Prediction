@@ -15,7 +15,9 @@ st.set_page_config(layout="wide")
 # ----------------------------
 data = pd.read_csv("accident_prediction_india.csv")
 
-# Convert time to period
+# ----------------------------
+# Convert Time to Period
+# ----------------------------
 def get_period(time):
     hour = int(time.split(":")[0])
     if 5 <= hour < 12:
@@ -30,19 +32,16 @@ def get_period(time):
 data["Time Period"] = data["Time of Day"].apply(get_period)
 
 # ----------------------------
-# Label Encoding
+# Create Encoders
 # ----------------------------
 le_weather = LabelEncoder()
 le_road = LabelEncoder()
 le_time = LabelEncoder()
-le_severity = LabelEncoder()
 
-encoded_data = data.copy()
-
-encoded_data['Weather Conditions'] = le_weather.fit_transform(encoded_data['Weather Conditions'])
-encoded_data['Road Type'] = le_road.fit_transform(encoded_data['Road Type'])
-encoded_data['Time Period'] = le_time.fit_transform(encoded_data['Time Period'])
-encoded_data['Accident Severity'] = le_severity.fit_transform(encoded_data['Accident Severity'])
+# Fit encoders (IMPORTANT)
+le_weather.fit(data["Weather Conditions"])
+le_road.fit(data["Road Type"])
+le_time.fit(data["Time Period"])
 
 # ----------------------------
 # Load Model
@@ -59,9 +58,9 @@ st.title("Spatio-Temporal Road Accident Risk Prediction")
 # ----------------------------
 st.header("Accident Risk Prediction")
 
-weather_val = le_weather.transform([weather])[0]
-road_val = le_road.transform([road])[0]
-time_val = le_time.transform([time])[0]
+weather = st.selectbox("Weather Condition", list(le_weather.classes_))
+road = st.selectbox("Road Type", list(le_road.classes_))
+time = st.selectbox("Time Period", list(le_time.classes_))
 
 if st.button("Predict Risk"):
 
@@ -81,17 +80,12 @@ if st.button("Predict Risk"):
 
     if risk == "Low Risk":
         st.success(f"Risk Level: {risk}")
-        st.info("Road conditions appear safe. Continue driving responsibly.")
-
     elif risk == "Medium Risk":
         st.warning(f"Risk Level: {risk}")
-        st.info("Moderate accident risk detected. Maintain safe distance and reduce speed.")
-
     else:
         st.error(f"Risk Level: {risk}")
-        st.warning("High accident risk detected. Avoid overspeeding and increase driver attention.")
 
-    st.write("Risk Score:", round(risk_score,2))
+    st.write("Risk Score:", round(risk_score, 2))
 
     # Risk Gauge
     fig = go.Figure(go.Indicator(
@@ -99,11 +93,11 @@ if st.button("Predict Risk"):
         value=risk_score,
         title={'text': "Accident Risk Score"},
         gauge={
-            'axis': {'range': [0,1]},
+            'axis': {'range': [0, 1]},
             'steps': [
-                {'range': [0,0.4], 'color': "green"},
-                {'range': [0.4,0.7], 'color': "yellow"},
-                {'range': [0.7,1], 'color': "red"}
+                {'range': [0, 0.4], 'color': "green"},
+                {'range': [0.4, 0.7], 'color': "yellow"},
+                {'range': [0.7, 1], 'color': "red"}
             ]
         }
     ))
@@ -111,7 +105,7 @@ if st.button("Predict Risk"):
     st.plotly_chart(fig)
 
 # ----------------------------
-# Approximate State Coordinates
+# State Coordinates
 # ----------------------------
 state_coords = {
 "Uttar Pradesh":[26.8467,80.9462],
@@ -138,7 +132,6 @@ state_coords = {
 "Meghalaya":[25.4670,91.3662]
 }
 
-# Map states to coordinates
 coords = []
 
 for state in data["State Name"]:
@@ -148,13 +141,13 @@ for state in data["State Name"]:
 # ----------------------------
 # DBSCAN Clustering
 # ----------------------------
-if len(coords) > 10:
+cluster_df = pd.DataFrame(coords, columns=["lat", "lon"])
 
-    db = DBSCAN(eps=1.5, min_samples=5).fit(coords)
-    labels = db.labels_
-
-    cluster_df = pd.DataFrame(coords, columns=["lat","lon"])
-    cluster_df["cluster"] = labels
+if len(cluster_df) > 10:
+    db = DBSCAN(eps=1.5, min_samples=5).fit(cluster_df)
+    cluster_df["cluster"] = db.labels_
+else:
+    cluster_df["cluster"] = -1
 
 # ----------------------------
 # Map
@@ -163,15 +156,12 @@ st.header("Accident Hotspot Detection")
 
 m = folium.Map(location=[20.59,78.96], zoom_start=5)
 
-for i,row in cluster_df.iterrows():
+for _, row in cluster_df.iterrows():
 
-    if row["cluster"] == -1:
-        color = "gray"
-    else:
-        color = "red"
+    color = "red" if row["cluster"] != -1 else "gray"
 
     folium.CircleMarker(
-        location=[row["lat"],row["lon"]],
+        location=[row["lat"], row["lon"]],
         radius=6,
         color=color,
         fill=True,
@@ -185,23 +175,40 @@ folium_static(m)
 # ----------------------------
 st.header("Dataset Preview")
 
-data.index = data.index + 1
-st.dataframe(data.head(20))
+preview = data.copy()
+preview.index = preview.index + 1
+st.dataframe(preview.head(20))
 
 # ----------------------------
 # Accident Statistics
 # ----------------------------
 st.header("Accident Statistics")
 
-col1,col2 = st.columns(2)
+col1, col2 = st.columns(2)
 
 with col1:
-    weather_chart = px.histogram(data,x="Weather Conditions",title="Accidents by Weather")
+    weather_chart = px.histogram(
+        data,
+        x="Weather Conditions",
+        color="Weather Conditions",
+        title="Accidents by Weather"
+    )
     st.plotly_chart(weather_chart)
 
 with col2:
-    road_chart = px.histogram(data,x="Road Type",title="Accidents by Road Type")
+    road_chart = px.histogram(
+        data,
+        x="Road Type",
+        color="Road Type",
+        title="Accidents by Road Type"
+    )
     st.plotly_chart(road_chart)
 
-state_chart = px.histogram(data,x="State Name",title="Accidents by State")
+state_chart = px.histogram(
+    data,
+    x="State Name",
+    color="State Name",
+    title="Accidents by State"
+)
+
 st.plotly_chart(state_chart)
