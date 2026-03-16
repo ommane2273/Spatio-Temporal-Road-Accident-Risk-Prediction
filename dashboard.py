@@ -38,7 +38,6 @@ le_weather = LabelEncoder()
 le_road = LabelEncoder()
 le_time = LabelEncoder()
 
-# Fit encoders (IMPORTANT)
 le_weather.fit(data["Weather Conditions"])
 le_road.fit(data["Road Type"])
 le_time.fit(data["Time Period"])
@@ -78,16 +77,26 @@ if st.button("Predict Risk"):
     else:
         risk = "High Risk"
 
+    # ----------------------------
+    # Risk Messages + Suggestions
+    # ----------------------------
     if risk == "Low Risk":
         st.success(f"Risk Level: {risk}")
+        st.info("Road conditions appear safe. Continue driving responsibly and maintain normal speed limits.")
+
     elif risk == "Medium Risk":
         st.warning(f"Risk Level: {risk}")
+        st.info("Moderate accident risk detected. Reduce speed slightly, maintain safe distance from other vehicles, and stay alert.")
+
     else:
         st.error(f"Risk Level: {risk}")
+        st.warning("High accident risk detected. Avoid overspeeding, increase driver attention, and drive defensively.")
 
     st.write("Risk Score:", round(risk_score, 2))
 
+    # ----------------------------
     # Risk Gauge
+    # ----------------------------
     fig = go.Figure(go.Indicator(
         mode="gauge+number",
         value=risk_score,
@@ -138,11 +147,11 @@ for state in data["State Name"]:
     if state in state_coords:
         coords.append(state_coords[state])
 
+cluster_df = pd.DataFrame(coords, columns=["lat","lon"])
+
 # ----------------------------
 # DBSCAN Clustering
 # ----------------------------
-cluster_df = pd.DataFrame(coords, columns=["lat", "lon"])
-
 if len(cluster_df) > 10:
     db = DBSCAN(eps=1.5, min_samples=5).fit(cluster_df)
     cluster_df["cluster"] = db.labels_
@@ -161,7 +170,7 @@ for _, row in cluster_df.iterrows():
     color = "red" if row["cluster"] != -1 else "gray"
 
     folium.CircleMarker(
-        location=[row["lat"], row["lon"]],
+        location=[row["lat"],row["lon"]],
         radius=6,
         color=color,
         fill=True,
@@ -177,6 +186,7 @@ st.header("Dataset Preview")
 
 preview = data.copy()
 preview.index = preview.index + 1
+
 st.dataframe(preview.head(20))
 
 # ----------------------------
@@ -184,7 +194,7 @@ st.dataframe(preview.head(20))
 # ----------------------------
 st.header("Accident Statistics")
 
-col1, col2 = st.columns(2)
+col1,col2 = st.columns(2)
 
 with col1:
     weather_chart = px.histogram(
