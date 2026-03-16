@@ -75,15 +75,20 @@ if st.button("Predict Risk"):
     else:
         risk = "High Risk"
 
-    # Color-coded result
-    if risk == "Low Risk":
-        st.success(f"Risk Level: {risk}")
-    elif risk == "Medium Risk":
-        st.warning(f"Risk Level: {risk}")
-    else:
-        st.error(f"Risk Level: {risk}")
+ # Color-coded result
+if risk == "Low Risk":
+    st.success(f"Risk Level: {risk}")
+    st.info("Road conditions appear safe. Continue driving responsibly.")
 
-    st.write("Risk Score:", round(risk_score,2))
+elif risk == "Medium Risk":
+    st.warning(f"Risk Level: {risk}")
+    st.info("Moderate accident risk detected. Maintain safe distance and reduce speed.")
+
+else:
+    st.error(f"Risk Level: {risk}")
+    st.warning("High accident risk detected. Avoid overspeeding and increase driver attention.")
+
+st.write("Risk Score:", round(risk_score,2))
 
 # ----------------------------
 # Risk Map
