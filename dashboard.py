@@ -5,6 +5,7 @@ from sklearn.preprocessing import LabelEncoder
 import folium
 from streamlit_folium import folium_static
 import plotly.express as px
+import plotly.graph_objects as go
 
 st.set_page_config(layout="wide")
 
@@ -88,6 +89,25 @@ if st.button("Predict Risk"):
         st.warning("High accident risk detected. Avoid overspeeding and increase driver attention.")
 
     st.write("Risk Score:", round(risk_score,2))
+
+    # ----------------------------
+    # Risk Gauge Meter
+    # ----------------------------
+    fig = go.Figure(go.Indicator(
+        mode="gauge+number",
+        value=risk_score,
+        title={'text': "Accident Risk Score"},
+        gauge={
+            'axis': {'range': [0,1]},
+            'steps': [
+                {'range': [0,0.4], 'color': "green"},
+                {'range': [0.4,0.7], 'color': "yellow"},
+                {'range': [0.7,1], 'color': "red"}
+            ]
+        }
+    ))
+
+    st.plotly_chart(fig)
 
 # ----------------------------
 # Risk Map
