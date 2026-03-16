@@ -10,7 +10,7 @@ st.set_page_config(layout="wide")
 # ----------------------------
 # Load Dataset
 # ----------------------------
-data = pd.read_csv("dataset/accident_prediction_india.csv")
+data = pd.read_csv("accident_prediction_india.csv")
 
 # Convert time to period
 def get_period(time):
